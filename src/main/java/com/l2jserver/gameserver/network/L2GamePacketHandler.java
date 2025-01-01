@@ -343,7 +343,7 @@ public final class L2GamePacketHandler implements PacketHandler<L2GameClient>, C
 					case 0x0c -> msg = new CharacterDelete();
 					case 0x0d -> msg = new CharacterSelect();
 					case 0x0e -> msg = new NewCharacter();
-					case 0x0e -> msg = new CharacterRestore();
+					case 0x62 -> msg = new CharacterRestore();
 					case 0x68 -> msg = new RequestPledgeCrest();
 					default -> printDebug(opcode, buf, state, client);
 				}
