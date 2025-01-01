@@ -1,18 +1,18 @@
 /*
  * Copyright © 2004-2025 L2J Server
- * 
+ *
  * This file is part of L2J Server.
- * 
+ *
  * L2J Server is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * L2J Server is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -313,61 +313,45 @@ import com.l2jserver.mmocore.ReceivablePacket;
  * @author KenM
  */
 public final class L2GamePacketHandler implements PacketHandler<L2GameClient>, ClientFactory<L2GameClient>, MMOExecutor<L2GameClient> {
-	
+
 	private static final Logger LOG = LoggerFactory.getLogger(L2GamePacketHandler.class);
-	
+
 	@Override
 	public ReceivablePacket<L2GameClient> handlePacket(ByteBuffer buf, L2GameClient client) {
 		if (client.dropPacket()) {
 			return null;
 		}
-		
+
 		int opcode = buf.get() & 0xFF;
 		int id3;
-		
+
 		ReceivablePacket<L2GameClient> msg = null;
 		GameClientState state = client.getState();
-		
+
 		switch (state) {
 			case CONNECTED:
 				switch (opcode) {
-					case 0x0e -> msg = new ProtocolVersion();
-					case 0x2b -> msg = new AuthLogin();
+					case 0x00 -> msg = new ProtocolVersion();
+					case 0x08 -> msg = new AuthLogin();
 					default -> printDebug(opcode, buf, state, client);
 				}
 				break;
 			case AUTHED:
 				switch (opcode) {
-					case 0x00 -> msg = new Logout();
-					case 0x0c -> msg = new CharacterCreate();
-					case 0x0d -> msg = new CharacterDelete();
-					case 0x12 -> msg = new CharacterSelect();
-					case 0x13 -> msg = new NewCharacter();
-					case 0x7b -> msg = new CharacterRestore();
-					case 0xd0 -> {
-						int id2;
-						if (buf.remaining() >= 2) {
-							id2 = buf.getShort() & 0xffff;
-						} else {
-							if (general().packetHandlerDebug()) {
-								LOG.warn("Client: {} sent a 0xd0 without the second opcode.", client);
-							}
-							break;
-						}
-						switch (id2) {
-							case 0x36 -> msg = new RequestGotoLobby();
-							case 0x93 -> msg = new RequestEx2ndPasswordCheck();
-							case 0x94 -> msg = new RequestEx2ndPasswordVerify();
-							case 0x95 -> msg = new RequestEx2ndPasswordReq();
-							default -> printDebugDoubleOpcode(opcode, id2, buf, state, client);
-						}
-					}
+					case 0x09 -> msg = new Logout();
+					case 0x0b -> msg = new CharacterCreate();
+					case 0x0c -> msg = new CharacterDelete();
+					case 0x0d -> msg = new CharacterSelect();
+					case 0x0e -> msg = new NewCharacter();
+					case 0x0e -> msg = new CharacterRestore();
+					case 0x68 -> msg = new RequestPledgeCrest();
 					default -> printDebug(opcode, buf, state, client);
 				}
 				break;
 			case JOINING: {
 				switch (opcode) {
-					case 0x11 -> msg = new EnterWorld();
+// 					case 0x01 -> msg = new MoveBackwardToLocation();
+					case 0x03 -> msg = new EnterWorld();
 					case 0xd0 -> {
 						int id2;
 						if (buf.remaining() >= 2) {
@@ -378,7 +362,7 @@ public final class L2GamePacketHandler implements PacketHandler<L2GameClient>, C
 							}
 							break;
 						}
-						
+
 						if (id2 == 0x01) {
 							msg = new RequestManorList();
 						} else {
@@ -945,7 +929,7 @@ public final class L2GamePacketHandler implements PacketHandler<L2GameClient>, C
 							}
 							break;
 						}
-						
+
 						switch (id2) {
 							case 0x01:
 								msg = new RequestManorList();
@@ -1393,39 +1377,39 @@ public final class L2GamePacketHandler implements PacketHandler<L2GameClient>, C
 		}
 		return msg;
 	}
-	
+
 	private void printDebug(int opcode, ByteBuffer buf, GameClientState state, L2GameClient client) {
 		client.onUnknownPacket();
 		if (!general().packetHandlerDebug()) {
 			return;
 		}
-		
+
 		int size = buf.remaining();
 		LOG.warn("Unknown Packet: 0x{} on State: {} Client: {}", Integer.toHexString(opcode), state.name(), client.toString());
 		byte[] array = new byte[size];
 		buf.get(array);
 		LOG.warn(Util.printData(array, size));
 	}
-	
+
 	private void printDebugDoubleOpcode(int opcode, int id2, ByteBuffer buf, GameClientState state, L2GameClient client) {
 		client.onUnknownPacket();
 		if (!general().packetHandlerDebug()) {
 			return;
 		}
-		
+
 		int size = buf.remaining();
 		LOG.warn("Unknown Packet: 0x{}:0x{} on State: {} Client: {}", Integer.toHexString(opcode), Integer.toHexString(id2), state.name(), client.toString());
 		byte[] array = new byte[size];
 		buf.get(array);
 		LOG.warn(Util.printData(array, size));
 	}
-	
+
 	// impl
 	@Override
 	public L2GameClient create(MMOConnection<L2GameClient> con) {
 		return new L2GameClient(con);
 	}
-	
+
 	@Override
 	public void execute(ReceivablePacket<L2GameClient> rp) {
 		rp.getClient().execute(rp);
